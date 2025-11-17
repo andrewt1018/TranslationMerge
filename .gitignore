@@ -1,0 +1,121 @@
+############################
+# Python cache & metadata
+############################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.pickle
+*.log
+
+# Virtual environment directories (just in case)
+venv/
+.env/
+.venv/
+
+############################
+# Conda environment files
+############################
+conda-meta/
+*.conda
+*.yaml
+
+############################
+# HuggingFace model & dataset caches
+# (These MUST NOT be inside your repo)
+############################
+# Hugging Face cache directories
+cache/
+*huggingface*
+hf_cache/
+datasets/
+transformers/
+.wandb/
+
+# Special HF files
+*.safetensors
+*.bin
+*.ckpt
+
+############################
+# Model outputs & checkpoints
+############################
+models/
+checkpoints/
+*/checkpoint-*/
+*.pt
+*.pth
+*.ckpt
+
+# Training outputs
+training_args.bin
+optimizer.pt
+scheduler.pt
+rng_state.pth
+global_step*
+
+############################
+# Logs
+############################
+logs/
+*.out
+*.err
+slurm-*.out
+slurm-*.err
+
+############################
+# Data
+############################
+data/
+raw_data/
+*.jsonl
+*.csv
+*.tsv
+
+############################
+# W&B
+############################
+wandb/
+wandb/*
+
+############################
+# Environment variables / secrets
+############################
+.env
+*.env
+.env.*
+*.secret
+
+############################
+# Jupyter notebooks
+############################
+.ipynb_checkpoints/
+*.ipynb
+
+############################
+# VSCode / IDE stuff
+############################
+.vscode/
+.idea/
+*.swp
+*.swo
+
+############################
+# MacOS & system files
+############################
+.DS_Store
+Thumbs.db
+
+############################
+# SBATCH run products
+############################
+*.e*
+*.o*
+*.batch
+
+############################
+# Scripts and Logs
+############################
+scripts/
+slurm_logs/
