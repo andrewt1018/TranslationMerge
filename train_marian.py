@@ -1,84 +1,46 @@
+# train_marian.py
 import argparse
-import numpy as np
-
 from transformers import (
     MarianMTModel,
+    MarianTokenizer,
     DataCollatorForSeq2Seq,
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
 )
-import evaluate
-
 from config import (
-    MARIAN_MODELS,
+    BASE_MODEL_NAME,
     BATCH_SIZE,
     LR,
     NUM_EPOCHS,
     WEIGHT_DECAY,
-    EVAL_STEPS,
     SAVE_STEPS,
+    EVAL_STEPS,
     LOGGING_STEPS,
     SAVE_TOTAL_LIMIT,
+    WARMUP_STEPS,
 )
-from data import get_tokenized_datasets, get_tokenizer
+from data import load_opus100
 
-
-def build_bleu_metric(tokenizer):
-    """
-    Wrap sacrebleu in a function that Trainer can use.
-    """
-    metric = evaluate.load("sacrebleu")
-
-    def postprocess_text(preds, labels):
-        preds = [p.strip() for p in preds]
-        labels = [[l.strip()] for l in labels]  # sacrebleu expects list-of-lists
-        return preds, labels
-
-    def compute_metrics(eval_preds):
-        preds, labels = eval_preds
-        # Replace masked label tokens (-100) with pad_token_id
-        labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
-
-        decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
-        decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
-
-        decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-        result = metric.compute(predictions=decoded_preds, references=decoded_labels)
-        return {"bleu": result["score"]}
-
-    return compute_metrics
-
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--lang_pair", type=str, required=True, help="e.g., en-zh or en-ja")
+    parser.add_argument("--output_dir", type=str, required=True)
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None)
+    return parser.parse_args()
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--lang_pair",
-        type=str,
-        required=True,
-        choices=["en-zh", "en-ja"],
-        help="Which language pair to train on.",
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        required=True,
-        help="Where to save the fine-tuned model.",
-    )
-    args = parser.parse_args()
+    args = parse_args()
 
-    # 1. Tokenizer + datasets
-    tokenizer = get_tokenizer(args.lang_pair)
-    tokenizer, train_ds, val_ds, test_ds = get_tokenized_datasets(args.lang_pair)
+    # 1. Shared base model + tokenizer
+    tokenizer = MarianTokenizer.from_pretrained(BASE_MODEL_NAME)
+    model = MarianMTModel.from_pretrained(BASE_MODEL_NAME)
 
-    # 2. Load the pre-trained Marian model for this direction
-    model_name = MARIAN_MODELS[args.lang_pair]
-    model = MarianMTModel.from_pretrained(model_name)
+    # 2. Load tokenized data for the given lang_pair
+    train_dataset, eval_dataset = load_opus100(args.lang_pair, tokenizer)
 
-    # 3. Data collator & metrics
-    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
-    compute_metrics = build_bleu_metric(tokenizer)
+    data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model)
 
-    # 4. TrainingArguments
+    # 3. Training arguments (with warmup)
     training_args = Seq2SeqTrainingArguments(
         output_dir=args.output_dir,
         eval_strategy="steps",
@@ -86,38 +48,34 @@ def main():
         save_steps=SAVE_STEPS,
         logging_steps=LOGGING_STEPS,
         learning_rate=LR,
+        warmup_steps=WARMUP_STEPS,
         per_device_train_batch_size=BATCH_SIZE,
         per_device_eval_batch_size=BATCH_SIZE,
         num_train_epochs=NUM_EPOCHS,
         weight_decay=WEIGHT_DECAY,
-        save_total_limit=SAVE_TOTAL_LIMIT,   # <- keeps disk usage low
+        save_total_limit=SAVE_TOTAL_LIMIT,
         predict_with_generate=True,
-        fp16=True,                           # turn off if your GPU doesn't support it
-        report_to=["wandb"],  # enable W&B integration
-        run_name=f"marian_{args.lang_pair}",  # shows up in W&B UI
+        fp16=True,
+        report_to=["wandb"],
+        run_name=f"opus_en_mul_{args.lang_pair}",
     )
 
-    # 5. Trainer
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
-        train_dataset=train_ds,
-        eval_dataset=val_ds,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         data_collator=data_collator,
         tokenizer=tokenizer,
-        compute_metrics=compute_metrics,
     )
 
-    # 6. Train and save
-    trainer.train()
+    if args.resume_from_checkpoint:
+        trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+    else:
+        trainer.train()
+
     trainer.save_model(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
-
-    # Optional: evaluate on test split
-    if test_ds is not None:
-        metrics = trainer.evaluate(test_ds, metric_key_prefix="test")
-        print("Test metrics:", metrics)
-
 
 if __name__ == "__main__":
     main()
