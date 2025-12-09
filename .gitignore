@@ -117,4 +117,7 @@ Thumbs.db
 # Scripts and Logs
 ############################
 scripts/*
+!scripts/.gitkeep
+
 slurm_logs/*
+!slurm_logs/.gitkeep
