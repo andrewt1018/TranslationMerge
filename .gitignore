@@ -29,7 +29,7 @@ conda-meta/
 cache/
 *huggingface*
 hf_cache/
-datasets/
+datasets/*
 transformers/
 .wandb/
 
@@ -41,8 +41,8 @@ transformers/
 ############################
 # Model outputs & checkpoints
 ############################
-models/
-checkpoints/
+models/*
+checkpoints/*
 */checkpoint-*/
 *.pt
 *.pth
@@ -67,7 +67,7 @@ slurm-*.err
 ############################
 # Data
 ############################
-data/
+data/*
 raw_data/
 *.jsonl
 *.csv
@@ -76,7 +76,6 @@ raw_data/
 ############################
 # W&B
 ############################
-wandb/
 wandb/*
 
 ############################
@@ -117,5 +116,5 @@ Thumbs.db
 ############################
 # Scripts and Logs
 ############################
-scripts/
-slurm_logs/
+scripts/*
+slurm_logs/*
