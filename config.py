@@ -27,3 +27,35 @@ EVAL_STEPS = 10000
 LOGGING_STEPS = 500
 SAVE_TOTAL_LIMIT = 1
 WARMUP_STEPS = 8000
+
+### Extra configs for QWEN
+# config.py  (add these near the top or in a Qwen section)
+
+QWEN_MODEL_NAME = "Qwen/Qwen2.5-0.5B"
+
+# We still use OPUS-100 language columns
+LANG_COLUMNS = {
+    "en-ja": ("en", "ja"),
+    "en-zh": ("en", "zh"),
+}
+
+# Special tokens we’ll add to the Qwen tokenizer
+QWEN_LANG_TAGS = {
+    "en-ja": {"src": "<en>", "tgt": "<ja>"},
+    "en-zh": {"src": "<en>", "tgt": "<zh>"},
+}
+
+QWEN_MAX_SOURCE_LENGTH = 256
+QWEN_MAX_TARGET_LENGTH = 256
+QWEN_MAX_SEQ_LEN = QWEN_MAX_SOURCE_LENGTH + QWEN_MAX_TARGET_LENGTH + 4  # room for tags
+
+QWEN_BATCH_SIZE = 8   # 0.5B model, causal LM → start a bit smaller than Marian
+QWEN_LR = 1e-5
+QWEN_NUM_EPOCHS = 3
+QWEN_WEIGHT_DECAY = 0.01
+QWEN_SAVE_STEPS = 10_000
+QWEN_EVAL_STEPS = 10_000
+QWEN_LOGGING_STEPS = 500
+QWEN_SAVE_TOTAL_LIMIT = 1
+QWEN_WARMUP_STEPS = 8_000
+
