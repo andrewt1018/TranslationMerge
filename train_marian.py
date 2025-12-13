@@ -19,7 +19,7 @@ from config import (
     SAVE_TOTAL_LIMIT,
     WARMUP_STEPS,
 )
-from data import load_opus100
+from data_marian import load_opus100
 
 def parse_args():
     parser = argparse.ArgumentParser()

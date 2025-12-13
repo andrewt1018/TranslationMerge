@@ -44,7 +44,7 @@ def load_opus100_qwen(lang_pair: str, tokenizer) -> Tuple[Any, Any]:
             texts,
             max_length=QWEN_MAX_SEQ_LEN,
             truncation=True,
-            padding=False,
+            padding="max_length",   # <-- changed from False
         )
 
         input_ids = encodings["input_ids"]

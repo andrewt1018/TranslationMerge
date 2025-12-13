@@ -58,6 +58,8 @@ def main():
     # 2. Load model and resize embeddings for new tokens
     model = AutoModelForCausalLM.from_pretrained(QWEN_MODEL_NAME)
     model.resize_token_embeddings(len(tokenizer))
+    model.gradient_checkpointing_enable()
+    model.config.use_cache = False
 
     # 3. Load datasets
     train_dataset, eval_dataset = load_opus100_qwen(args.lang_pair, tokenizer)
@@ -71,20 +73,22 @@ def main():
     # 5. Training arguments
     training_args = TrainingArguments(
         output_dir=args.output_dir,
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=QWEN_EVAL_STEPS,
         save_steps=QWEN_SAVE_STEPS,
         logging_steps=QWEN_LOGGING_STEPS,
         learning_rate=QWEN_LR,
         warmup_steps=QWEN_WARMUP_STEPS,
-        per_device_train_batch_size=QWEN_BATCH_SIZE,
-        per_device_eval_batch_size=QWEN_BATCH_SIZE,
+        per_device_train_batch_size=QWEN_BATCH_SIZE,  
+        per_device_eval_batch_size=QWEN_BATCH_SIZE,   
+        gradient_accumulation_steps=2,                
+        fp16=True,
         num_train_epochs=QWEN_NUM_EPOCHS,
         weight_decay=QWEN_WEIGHT_DECAY,
         save_total_limit=QWEN_SAVE_TOTAL_LIMIT,
-        fp16=torch.cuda.is_available(),
         report_to=["wandb"],  # if you’ve been using W&B
         run_name=f"qwen2.5_0.5B_{args.lang_pair}",
+        max_steps=100000
     )
 
     trainer = Trainer(

@@ -42,7 +42,10 @@ transformers/
 # Model outputs & checkpoints
 ############################
 models/*
+!models/.gitkeep
 checkpoints/*
+!checkpoint/.gitkeep
+
 */checkpoint-*/
 *.pt
 *.pth
