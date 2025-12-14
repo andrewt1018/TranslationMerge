@@ -3,7 +3,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from sacrebleu import corpus_bleu, corpus_chrf
 from sacrebleu.metrics import BLEU
 
-MODEL_DIR = "models/qwen_ta_merged"
+MODEL_DIR = "models/qwen_en_zh_ft"
 LANG_PAIR = "en-zh"
 
 # Simple test sentence
