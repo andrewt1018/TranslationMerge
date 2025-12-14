@@ -20,7 +20,7 @@ def load_opus100(lang_pair: str, tokenizer) -> Tuple[Any, Any]:
         src_texts = [ex[src_lang] for ex in translations]
         tgt_texts = [ex[tgt_lang] for ex in translations]
 
-        # IMPORTANT: prepend target language token to the source
+        # Prepend target language token to the source
         # e.g., ">>zho<< This is a sentence."
         src_with_tag = [f"{tgt_lang_tag} {s}" for s in src_texts]
 

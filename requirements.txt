@@ -6,3 +6,4 @@ sacrebleu
 evaluate
 sacremoses
 wandb
+matplotlib

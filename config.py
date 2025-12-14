@@ -8,8 +8,6 @@ LANG_COLUMNS = {
     "en-ja": ("en", "ja"),
 }
 
-# Marian en-mul requires a target language token at the start of the source
-# Model card: "a sentence initial language token is required in the form `>>id<<`" :contentReference[oaicite:0]{index=0}
 LANG_TAGS = {
     "en-zh": ">>zho<<",   # Chinese
     "en-ja": ">>jpn<<",   # Japanese
@@ -29,8 +27,6 @@ SAVE_TOTAL_LIMIT = 1
 WARMUP_STEPS = 8000
 
 ### Extra configs for QWEN
-# config.py  (add these near the top or in a Qwen section)
-
 QWEN_MODEL_NAME = "Qwen/Qwen2.5-0.5B"
 
 # We still use OPUS-100 language columns
@@ -39,7 +35,7 @@ LANG_COLUMNS = {
     "en-zh": ("en", "zh"),
 }
 
-# Special tokens we’ll add to the Qwen tokenizer
+# Special tokens for the Qwen tokenizer
 QWEN_LANG_TAGS = {
     "en-ja": {"src": "<en>", "tgt": "<ja>"},
     "en-zh": {"src": "<en>", "tgt": "<zh>"},

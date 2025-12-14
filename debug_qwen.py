@@ -1,15 +1,15 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from sacrebleu import corpus_bleu, corpus_chrf
+from sacrebleu.metrics import BLEU
 
-# CHANGE THESE
-MODEL_DIR = "models/qwen_en_zh_ft/checkpoint-60000"   # or en_zh checkpoint
-LANG_PAIR = "en-zh"                                   # "en-ja" or "en-zh"
+MODEL_DIR = "models/qwen_ta_merged"
+LANG_PAIR = "en-zh"
 
 # Simple test sentence
-src_sentence = "The forum produced business contracts amounting to more than $24 million between Asian and African private companies."
-src_sentence = "The Global Programme of Action Coordination Office, with the financial support of Belgium,\xa0is currently assisting Egypt, Nigeria, United Republic of Tanzania, Sri Lanka and Yemen to develop pilot national programmes of action for the protection of the marine environment from land-based activities."
+src_sentence = "I like machine learning."
+target = "我喜欢机器学习。"
 
-# Language tags (must match training!)
 if LANG_PAIR == "en-ja":
     prompt = f"<en> {src_sentence} <ja>"
 elif LANG_PAIR == "en-zh":
@@ -56,9 +56,17 @@ def clean_pred(s: str) -> str:
 
 # Decode ONLY the continuation
 generated_tokens = out[0][input_len:]
-decoded = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+decoded = clean_pred(tokenizer.decode(generated_tokens, skip_special_tokens=True))
+if LANG_PAIR == "en-ja":
+    score = corpus_chrf([decoded], [target])
+else:
+    bleu = BLEU(tokenize="zh")
+    score = bleu.corpus_score([decoded], [target])
 
 print("PROMPT:")
 print(prompt)
-print("\nMODEL OUTPUT:")
-print(clean_pred(decoded))
+print("TARGET:")
+print(target)
+print("MODEL OUTPUT:")
+print(decoded)
+print("BLEU:", score.score)

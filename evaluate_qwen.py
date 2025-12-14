@@ -2,11 +2,16 @@
 import argparse
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from sacrebleu import corpus_bleu
+from sacrebleu import corpus_bleu, corpus_chrf
+from sacrebleu.metrics import BLEU
 import torch
 
 from config import LANG_COLUMNS, QWEN_LANG_TAGS, QWEN_MAX_SEQ_LEN
 
+FLORES_CODES = {
+    "en-ja": ("eng_Latn", "jpn_Jpan"),
+    "en-zh": ("eng_Latn", "cmn_Hans"),
+}
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -25,7 +30,7 @@ def clean_pred(s: str) -> str:
     for stop in ["<en>", "<ja>", "<zh>"]:
         if stop in s:
             s = s.split(stop, 1)[0].strip()
-    # Optional: keep only first sentence (good for JA/ZH)
+    # Keep only first sentence (good for JA/ZH)
     for sep in ["。", "！", "？", ".", "!", "?"]:
         if sep in s:
             s = s.split(sep, 1)[0] + sep
@@ -45,7 +50,6 @@ def generate_translations(model, tokenizer, prompts, batch_size=8, max_new_token
             padding=True, 
             truncation=True
         ).to(device)
-        # input_len = enc["input_ids"].shape[1]
         prompt_len = enc["input_ids"].shape[1]
 
         # Generate
@@ -63,11 +67,7 @@ def generate_translations(model, tokenizer, prompts, batch_size=8, max_new_token
         for j in range(gen_only.size(0)):
             decoded = tokenizer.decode(gen_only[j], skip_special_tokens=True)
             all_preds.append(clean_pred(decoded))
-            
-        # generated_tokens = out[0][input_len:]
-        # decoded = tokenizer.decode(generated_tokens, skip_special_tokens=True)
-        # all_preds.append(clean_pred(decoded))
-
+   
     return all_preds
 
 def main():
@@ -75,7 +75,7 @@ def main():
 
     assert args.lang_pair in LANG_COLUMNS, f"Unsupported lang_pair: {args.lang_pair}"
     src_lang, tgt_lang = LANG_COLUMNS[args.lang_pair]
-    tags = QWEN_LANG_TAGS[args.lang_pair]  # {"src": "<en>", "tgt": "<ja>"} or "<zh>"
+    tags = QWEN_LANG_TAGS[args.lang_pair]  
     print(f"Tags: {tags}")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -89,17 +89,28 @@ def main():
     model.eval()
 
     # Load OPUS-100 test split
-    dataset = load_dataset("opus100", args.lang_pair)["test"]
-    if args.max_samples is not None:
-        n = min(args.max_samples, len(dataset))
-        dataset = dataset.select(range(n))
+    # dataset = load_dataset("opus100", args.lang_pair)["test"]
+    # if args.max_samples is not None:
+    #     n = min(args.max_samples, len(dataset))
+    #     dataset = dataset.select(range(n))
 
-    sources = [ex[src_lang] for ex in dataset["translation"]]
-    targets = [ex[tgt_lang] for ex in dataset["translation"]]
+    # sources = [ex[src_lang] for ex in dataset["translation"]]
+    # targets = [ex[tgt_lang] for ex in dataset["translation"]]
+    
+    src_code, tgt_code = FLORES_CODES[args.lang_pair]
 
-    # Build prompts: "<en> source <ja>" or "<en> source <zh>"
+    src_ds = load_dataset("openlanguagedata/flores_plus", src_code, split="devtest")
+    tgt_ds = load_dataset("openlanguagedata/flores_plus", tgt_code, split="devtest")
+
+    # Cap samples
+    n = min(args.max_samples, len(src_ds), len(tgt_ds)) if args.max_samples else min(len(src_ds), len(tgt_ds))
+    src_ds = src_ds.select(range(n))
+    tgt_ds = tgt_ds.select(range(n))
+
+    sources = src_ds["text"]
+    targets = tgt_ds["text"]
+    
     prompts = [f"{tags['src']} {src} {tags['tgt']}" for src in sources]
-
     # Generate translations from Qwen
     preds = generate_translations(
         model, tokenizer, prompts,
@@ -109,9 +120,13 @@ def main():
     )
     
     # Compute BLEU
-    bleu = corpus_bleu(preds, [targets])
+    if args.lang_pair == "en-ja":
+        score = corpus_chrf(preds, [targets])
+    else:
+        bleu = BLEU(tokenize="zh")
+        score = bleu.corpus_score(preds, [targets])
     print(f"\n=== Evaluation for {args.model_dir} on {args.lang_pair} ===")
-    print("BLEU:", bleu.score)
+    print("BLEU:", score.score)
 
 
 if __name__ == "__main__":

@@ -44,7 +44,7 @@ def load_opus100_qwen(lang_pair: str, tokenizer) -> Tuple[Any, Any]:
             texts,
             max_length=QWEN_MAX_SEQ_LEN,
             truncation=True,
-            padding="max_length",   # <-- changed from False
+            padding="max_length",
         )
 
         input_ids = encodings["input_ids"]
@@ -52,16 +52,11 @@ def load_opus100_qwen(lang_pair: str, tokenizer) -> Tuple[Any, Any]:
 
         labels = []
         for ids in input_ids:
-            # We want to ignore loss on everything up to and including the target tag.
-            # Strategy:
-            #   1. find the position of the target tag token id;
-            #   2. set labels[:pos+1] = -100, labels[pos+1:] = input_ids[pos+1:]
             tgt_tag_id = tokenizer.convert_tokens_to_ids(tags["tgt"])
             # find first occurrence
             try:
                 pos = ids.index(tgt_tag_id)
             except ValueError:
-                # very unlikely, but be safe
                 pos = 0
             lab = [-100] * len(ids)
             for j in range(pos + 1, len(ids)):
